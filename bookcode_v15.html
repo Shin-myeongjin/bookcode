@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#E8E4D8"/>
+<title>BOOKCODE · Good Reader's Receipt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=DotGothic16&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; min-height: 100%; }
+  body {
+    font-family: 'VT323', 'DotGothic16', monospace;
+    background: #C9C1A8;
+    color: #2C2C2A;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage {
+    max-width: 480px; margin: 0 auto;
+    background: #E8E4D8;
+    min-height: 100vh;
+    padding: 20px 16px 60px;
+    position: relative;
+  }
+
+  /* ───── 헤더 ───── */
+  .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .app-title { font-size: 24px; letter-spacing: 3px; font-weight: bold; }
+  .icon-btn {
+    background: transparent; border: 1.5px solid #2C2C2A;
+    padding: 6px 10px; font-family: 'VT323', monospace; font-size: 14px;
+    cursor: pointer; color: #2C2C2A; letter-spacing: 1px;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.15); transition: all 0.1s;
+  }
+  .icon-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 rgba(0,0,0,0.15); }
+
+  /* ───── 화면 ───── */
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ───── 기계 본체 ───── */
+  .br-machine { display: flex; justify-content: center; margin: 12px 0; }
+  .br-body {
+    width: 300px;
+    background: #DDD4BD;
+    border: 2px solid #2C2C2A;
+    border-radius: 6px;
+    padding: 14px 14px 10px;
+    box-shadow: 0 4px 0 #2C2C2A, inset 2px 2px 0 #F0E8D0, inset -2px -2px 0 #B5AC95;
+    transition: transform 0.2s;
+  }
+  .br-body.printing { animation: machineVibe 0.08s infinite; }
+  @keyframes machineVibe {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-0.7px, 0.3px); }
+    75% { transform: translate(0.5px, -0.2px); }
+  }
+
+  .br-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; letter-spacing: 1px; }
+  .br-leds { display: flex; gap: 5px; }
+  .led { width: 7px; height: 7px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.3); }
+  .led.red { background: #E24B4A; }
+  .led.green { background: #97C459; box-shadow: 0 0 4px #97C459; }
+  .led.green.blink { animation: blinkLed 0.4s infinite; }
+  @keyframes blinkLed { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .br-screen {
+    background: #1A2B1F;
+    border: 2px solid #2C2C2A;
+    border-radius: 4px;
+    padding: 16px 14px;
+    min-height: 110px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+  }
+  .br-screen::before {
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px);
+    pointer-events: none;
+  }
+  .br-screen::after {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.3) 100%);
+    pointer-events: none;
+  }
+  .screen-text {
+    font-size: 22px;
+    color: #6FE8A8;
+    text-shadow: 0 0 4px rgba(111,232,168,0.6), 0 0 8px rgba(111,232,168,0.3);
+    letter-spacing: 1.5px;
+    line-height: 1.3;
+    position: relative;
+    z-index: 1;
+  }
+  .screen-text .small { font-size: 14px; opacity: 0.85; }
+  .cursor { display: inline-block; width: 10px; height: 18px; background: #6FE8A8; vertical-align: middle; animation: cursorBlink 1s infinite; margin-left: 3px; box-shadow: 0 0 4px #6FE8A8; }
+  @keyframes cursorBlink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+
+  .br-slots { padding: 10px 0 0; }
+  .slot-label { font-size: 12px; letter-spacing: 1.5px; margin-bottom: 4px; }
+  .input-slot { background: #2C2C2A; height: 8px; border-radius: 1px; position: relative; margin-bottom: 40px; }
+  .input-slot::after { content: ''; position: absolute; top: 8px; left: 5%; right: 5%; height: 32px; background: linear-gradient(to bottom, #1A1A18, #444441); border-radius: 0 0 2px 2px; }
+  .output-slot { background: #2C2C2A; height: 8px; border-radius: 1px; position: relative; }
+
+  /* ───── 영수증 출력 (기기 바로 아래에 붙어서 펼쳐짐) ───── */
+  .receipt-track {
+    width: 300px;
+    margin: 0 auto;
+    position: relative;
+  }
+  .receipt-wrap {
+    overflow: hidden;
+    max-height: 0;
+    margin: 0 auto;
+    width: 256px;
+    transition: max-height 0.1s linear;
+  }
+  .receipt-wrap.printing { max-height: 2000px; transition: max-height 4.5s cubic-bezier(0.25, 0.1, 0.25, 1); }
+  .receipt-wrap.show { max-height: 2000px; }
+  .receipt-wrap.torn-out { animation: tearDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+  @keyframes tearDrop {
+    0% { transform: translateY(0) rotate(0deg); }
+    100% { transform: translateY(8px) rotate(0.6deg); }
+  }
+
+  .receipt {
+    background: #FAFAF7;
+    width: 100%;
+    padding: 18px 16px 22px;
+    color: #2C2C2A;
+    box-shadow: 1px 2px 0 rgba(0,0,0,0.06);
+    clip-path: polygon(
+      0 6px, 4% 0, 11% 4px, 18% 0, 25% 5px, 32% 0, 39% 4px, 46% 0, 53% 5px, 60% 0, 67% 4px, 74% 0, 81% 5px, 88% 0, 95% 4px, 100% 0,
+      100% calc(100% - 6px), 95% 100%, 88% calc(100% - 5px), 81% 100%, 74% calc(100% - 5px), 67% 100%, 60% calc(100% - 5px), 53% 100%, 46% calc(100% - 5px), 39% 100%, 32% calc(100% - 5px), 25% 100%, 18% calc(100% - 5px), 11% 100%, 4% calc(100% - 5px), 0 calc(100% - 6px)
+    );
+    animation: paperSway 3s ease-in-out infinite;
+  }
+  @keyframes paperSway {
+    0%, 100% { transform: rotate(-0.3deg); }
+    50% { transform: rotate(0.3deg); }
+  }
+  .receipt-row { opacity: 0; }
+  .receipt-row.visible { animation: typeIn 0.3s forwards; }
+  @keyframes typeIn {
+    from { opacity: 0; transform: translateY(-2px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .r-header { text-align: center; margin-bottom: 12px; padding-top: 6px; }
+  .r-brand-name { font-size: 22px; letter-spacing: 3px; }
+  .r-sub { font-size: 14px; margin-top: 2px; letter-spacing: 1px; }
+  .r-meta { font-size: 13px; margin-top: 1px; opacity: 0.7; }
+  .r-line {
+    display: flex; justify-content: space-between; font-size: 12px; line-height: 1.5; gap: 12px; align-items: flex-start;
+  }
+  .r-line .ttl {
+    flex: 1; word-break: keep-all; overflow-wrap: break-word; min-width: 0;
+  }
+  .r-line .val { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .r-dashed { border-top: 1px dashed #2C2C2A; padding-top: 6px; margin-top: 6px; }
+  .r-counter { font-size: 11px; color: #888780; margin-right: 6px; letter-spacing: 0.5px; }
+  .r-total { font-size: 16px; font-weight: bold; margin-top: 6px; }
+  .r-barcode-section { padding-top: 12px; margin-top: 10px; border-top: 1px dashed #2C2C2A; }
+  .r-barcode-label { font-size: 11px; text-align: center; letter-spacing: 2px; margin-bottom: 8px; opacity: 0.7; }
+  .r-barcode-bars {
+    display: flex; align-items: flex-end; justify-content: center;
+    gap: 1px; height: 56px; flex-wrap: nowrap; overflow: hidden;
+  }
+  .r-barcode-bar { flex-shrink: 0; }
+  .r-barcode-code { text-align: center; font-size: 12px; margin-top: 8px; letter-spacing: 3px; }
+  .r-sig { text-align: center; font-size: 11px; margin-top: 12px; opacity: 0.5; letter-spacing: 1px; }
+
+  /* ───── CTA ───── */
+  .cta-row { display: flex; justify-content: center; gap: 10px; margin: 18px 0 14px; }
+  .pill { background: #2C2C2A; color: #DDD4BD; border: 2px solid #2C2C2A; padding: 11px 24px; font-family: 'VT323', monospace; font-size: 18px; letter-spacing: 2px; cursor: pointer; border-radius: 0; box-shadow: 3px 3px 0 rgba(0,0,0,0.2); transition: all 0.1s; white-space: nowrap; }
+  .pill:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(0,0,0,0.2); }
+  .pill:disabled { opacity: 0.5; cursor: not-allowed; }
+  .pill.ghost { background: transparent; color: #2C2C2A; }
+
+  /* ───── 통계 ───── */
+  .stats-card {
+    background: #FAFAF7;
+    border: 2px solid #2C2C2A;
+    padding: 14px 16px;
+    margin: 14px 0;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.15);
+  }
+  .stats-row { display: flex; justify-content: space-between; align-items: center; }
+  .stats-label { font-size: 14px; color: #5F5E5A; letter-spacing: 1px; }
+  .stats-num { font-size: 32px; letter-spacing: 1px; }
+
+  /* ───── 검색 화면 ───── */
+  .back-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .back-row .title { font-size: 22px; letter-spacing: 2px; }
+  .search-bar { display: flex; align-items: center; gap: 10px; background: #FAFAF7; padding: 12px 16px; border: 2px solid #2C2C2A; margin-bottom: 14px; box-shadow: 2px 2px 0 rgba(0,0,0,0.15); }
+  .search-bar input { flex: 1; border: none; outline: none; background: transparent; font-family: 'VT323', 'DotGothic16', monospace; font-size: 18px; color: #2C2C2A; }
+  .book-card { display: flex; gap: 12px; padding: 10px 8px; cursor: pointer; align-items: center; border-bottom: 1px dashed #B5AC95; }
+  .book-card:active { background: rgba(0,0,0,0.05); }
+  .book-spine { width: 32px; height: 48px; border-radius: 1px; flex-shrink: 0; box-shadow: 1px 1px 0 rgba(0,0,0,0.15); }
+  .book-info { flex: 1; min-width: 0; }
+  .book-title { font-size: 17px; line-height: 1.2; }
+  .book-author { font-size: 14px; color: #5F5E5A; margin-top: 2px; }
+
+  /* ───── 빈 상태 ───── */
+  .empty-state { text-align: center; padding: 30px 20px; color: #888780; font-size: 16px; }
+  .receipt-empty { padding: 24px 20px; text-align: center; color: #888780; font-size: 15px; line-height: 1.6; background: #FAFAF7; clip-path: polygon(0 6px, 4% 0, 11% 4px, 18% 0, 25% 5px, 32% 0, 39% 4px, 46% 0, 53% 5px, 60% 0, 67% 4px, 74% 0, 81% 5px, 88% 0, 95% 4px, 100% 0, 100% calc(100% - 6px), 95% 100%, 88% calc(100% - 5px), 81% 100%, 74% calc(100% - 5px), 67% 100%, 60% calc(100% - 5px), 53% 100%, 46% calc(100% - 5px), 39% 100%, 32% calc(100% - 5px), 25% 100%, 18% calc(100% - 5px), 11% 100%, 4% calc(100% - 5px), 0 calc(100% - 6px)); }
+
+  /* ───── 모달 ───── */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: none; align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: #DDD4BD; border: 2px solid #2C2C2A;
+    padding: 22px 18px; width: 100%; max-width: 320px;
+    box-shadow: 5px 5px 0 rgba(0,0,0,0.3);
+  }
+  .modal h2 { font-size: 22px; letter-spacing: 2px; margin: 0 0 6px; }
+  .modal p { font-size: 15px; color: #5F5E5A; margin: 0 0 14px; letter-spacing: 1px; line-height: 1.4; }
+  .modal input {
+    width: 100%; background: #FAFAF7; border: 2px solid #2C2C2A;
+    padding: 10px 12px; font-family: 'VT323', monospace; font-size: 18px; color: #2C2C2A;
+    box-shadow: inset 2px 2px 0 rgba(0,0,0,0.05);
+  }
+  .modal input:focus { outline: none; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .modal-actions .pill { flex: 1; font-size: 16px; padding: 9px 12px; }
+
+  /* ───── 토스트 ───── */
+  .toast {
+    position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+    background: #2C2C2A; color: #DDD4BD;
+    padding: 10px 18px; font-family: 'VT323', monospace; font-size: 16px; letter-spacing: 1px;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 200;
+  }
+  .toast.show { opacity: 1; }
+
+  .footer-credit { text-align: center; margin-top: 30px; font-size: 13px; color: #888780; letter-spacing: 1px; transition: opacity 0.3s; }
+  /* 영수증이 펼쳐져 있을 때는 푸터 숨김 (영수증 자체에 made by 푸터가 있음) */
+  #screen-home:has(.receipt-wrap.show) .footer-credit,
+  #screen-home:has(.receipt-wrap.torn-out) .footer-credit,
+  #screen-home:has(.receipt-wrap.printing) .footer-credit { opacity: 0; pointer-events: none; }
+
+  /* ───── 공유 화면 ───── */
+  .share-stage {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px 40px;
+  }
+  .share-back-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .share-back-row .title { font-size: 22px; letter-spacing: 2px; }
+  .share-canvas-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 0;
+    /* 투명 배경임을 보여주는 체커보드 */
+    background-color: #FAFAF7;
+    background-image: 
+      linear-gradient(45deg, #D8D3C0 25%, transparent 25%),
+      linear-gradient(-45deg, #D8D3C0 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #D8D3C0 75%),
+      linear-gradient(-45deg, transparent 75%, #D8D3C0 75%);
+    background-size: 18px 18px;
+    background-position: 0 0, 0 9px, 9px -9px, -9px 0px;
+    border: 1px dashed #888780;
+    border-radius: 0;
+    margin: 8px 0;
+  }
+  .share-hint {
+    text-align: center;
+    font-size: 12px;
+    color: #888780;
+    letter-spacing: 1px;
+    padding: 4px 0 8px;
+  }
+  /* 영수증을 캡처 대상으로 감싸는 박스 — 영수증에 딱 맞게 */
+  .capture-box {
+    background: transparent;
+    padding: 0;
+    width: auto;
+    display: inline-flex;
+    justify-content: center;
+  }
+  .capture-box .receipt {
+    width: 260px;
+    animation: none;
+    transform: none !important;
+  }
+  /* ───── 캡처 모드: 종이는 진하게, 직각 모서리로 영수증 느낌 살림 ───── */
+  .capture-box .receipt.capturing {
+    background: #FFFFFF !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06) !important;
+    color: #1A1A18 !important;
+    clip-path: none !important;
+    border-radius: 0 !important;
+  }
+  .capture-box .receipt.capturing * {
+    color: #1A1A18 !important;
+    opacity: 1 !important;
+  }
+  .capture-box .receipt.capturing .r-counter {
+    color: #555550 !important;
+  }
+  .capture-box .receipt.capturing .r-meta,
+  .capture-box .receipt.capturing .r-barcode-label,
+  .capture-box .receipt.capturing .r-sig {
+    opacity: 0.85 !important;
+  }
+  .share-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .share-actions .pill { padding: 11px 12px; font-size: 17px; letter-spacing: 1.5px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="toast" id="toast"></div>
+
+  <!-- 메인 -->
+  <div class="screen active" id="screen-home">
+    <div class="app-header">
+      <div class="app-title">BOOKCODE</div>
+      <button class="icon-btn" onclick="confirmReset()">↻ RESET</button>
+    </div>
+
+    <div class="br-machine">
+      <div class="br-body" id="machine">
+        <div class="br-top-bar">
+          <span style="font-weight:bold;">BOOKCODE</span>
+          <div class="br-leds">
+            <div class="led red"></div>
+            <div class="led green" id="led-green"></div>
+          </div>
+        </div>
+        <div class="br-screen">
+          <div class="screen-text" id="screen-text">WELCOME<br/>BOOKCODE!<br/><span class="small">INSERT YOUR BOOK</span><span class="cursor"></span></div>
+        </div>
+        <div class="br-slots">
+          <div class="slot-label">▼ INSERT BOOK</div>
+          <div class="input-slot"></div>
+          <div class="slot-label">▼ RECEIPT</div>
+          <div class="output-slot"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 영수증이 기기 바로 아래에서 뽑혀나오는 영역 -->
+    <div class="receipt-track">
+      <div class="receipt-wrap" id="receipt-wrap">
+        <div class="receipt" id="receipt"></div>
+      </div>
+    </div>
+
+    <div class="cta-row" id="cta-row">
+      <button class="pill" id="btn-primary" onclick="goToSearch()">+ ADD BOOK</button>
+      <button class="pill ghost" id="btn-secondary" onclick="togglePrintReceipt()">▷ RECEIPT</button>
+    </div>
+
+    <div class="footer-credit">
+      made by 
+      <a href="https://www.instagram.com/aiarchive.zip" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">@aiarchive.zip</a>
+    </div>
+  </div>
+
+  <!-- 검색 -->
+  <div class="screen" id="screen-search">
+    <div class="back-row">
+      <button class="icon-btn" onclick="goToHome()">← BACK</button>
+      <div class="title">ADD BOOK</div>
+    </div>
+    <div class="search-bar">
+      <span style="font-size:18px;">🔍</span>
+      <input id="search-input" type="text" placeholder="제목 또는 저자" oninput="renderSearch()" autocomplete="off"/>
+    </div>
+    <div id="search-results"></div>
+  </div>
+
+  <!-- 공유 -->
+  <div class="screen" id="screen-share">
+    <div class="share-stage">
+      <div class="share-back-row">
+        <button class="icon-btn" onclick="closeShare()">← BACK</button>
+        <div class="title">SHARE</div>
+      </div>
+      <div class="share-canvas-wrap">
+        <div class="capture-box" id="capture-box">
+          <div class="receipt" id="receipt-clone"></div>
+        </div>
+      </div>
+      <div class="share-hint">투명 배경 PNG · 인스타 스토리에 올려보세요</div>
+      <div class="share-actions">
+        <button class="pill ghost" onclick="closeShare()">✕ CLOSE</button>
+        <button class="pill" onclick="saveImage()" id="save-btn">↓ SAVE IMAGE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 유저네임 모달 -->
+  <div class="modal-backdrop" id="username-modal">
+    <div class="modal">
+      <h2>WELCOME!</h2>
+      <p>인스타 아이디나 닉네임을<br/>알려주세요.<br/>영수증에 새겨집니다.</p>
+      <input id="username-input" type="text" placeholder="your_id" maxlength="20" autocomplete="off"/>
+      <div class="modal-actions">
+        <button class="pill" onclick="saveUsername()">✓ SAVE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 리셋 모달 -->
+  <div class="modal-backdrop" id="reset-modal">
+    <div class="modal">
+      <h2>RESET?</h2>
+      <p>모든 책 기록과 닉네임이<br/>삭제됩니다.<br/>되돌릴 수 없어요.</p>
+      <div class="modal-actions">
+        <button class="pill ghost" onclick="closeResetModal()">CANCEL</button>
+        <button class="pill" onclick="doReset()" style="background:#A32D2D;border-color:#A32D2D;">RESET</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ───── 더미 데이터 ─────
+  const BOOK_DB = [
+    { id: 1, title: '달러구트 꿈 백화점', author: '이미예', color: '#BA7517' },
+    { id: 2, title: '달러구트 꿈 백화점 2', author: '이미예', color: '#534AB7' },
+    { id: 3, title: '아몬드', author: '손원평', color: '#1D9E75' },
+    { id: 4, title: '불편한 편의점', author: '김호연', color: '#D85A30' },
+    { id: 5, title: '미드나잇 라이브러리', author: '매트 헤이그', color: '#185FA5' },
+    { id: 6, title: '작별인사', author: '김영하', color: '#2C2C2A' },
+    { id: 7, title: '파친코', author: '이민진', color: '#993556' },
+    { id: 8, title: '시선으로부터,', author: '정세랑', color: '#D4537E' },
+    { id: 9, title: '여름은 오래 그곳에 남아', author: '마쓰이에 마사시', color: '#5DCAA5' },
+    { id: 10, title: '나미야 잡화점의 기적', author: '히가시노 게이고', color: '#A32D2D' },
+    { id: 11, title: '코스모스', author: '칼 세이건', color: '#0C447C' },
+    { id: 12, title: '사피엔스', author: '유발 하라리', color: '#854F0B' },
+    { id: 13, title: '소년이 온다', author: '한강', color: '#412402' },
+    { id: 14, title: '채식주의자', author: '한강', color: '#97C459' },
+    { id: 15, title: '데미안', author: '헤르만 헤세', color: '#3B6D11' },
+    { id: 16, title: '1984', author: '조지 오웰', color: '#5F5E5A' },
+    { id: 17, title: '동물농장', author: '조지 오웰', color: '#EF9F27' },
+    { id: 18, title: '오래된 미래', author: '헬레나 노르베리호지', color: '#085041' },
+  ];
+  BOOK_DB.forEach(b => { b.pages = 200 + Math.floor(Math.random() * 250); });
+
+  const STORAGE_KEY = 'bookcode_books_v3';
+  const USER_KEY = 'bookcode_username_v3';
+  let myBooks = [];
+  let username = '';
+  let audioCtx = null;
+  let printingActive = false;
+  let printGrinNode = null;
+
+  function loadData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      myBooks = raw ? JSON.parse(raw) : [];
+      username = localStorage.getItem(USER_KEY) || '';
+    } catch (e) { myBooks = []; username = ''; }
+    updateUI();
+  }
+  function saveData() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(myBooks));
+      if (username) localStorage.setItem(USER_KEY, username);
+    } catch (e) {}
+    updateUI();
+  }
+  function updateUI() {
+    updateDisplay();
+  }
+
+  function updateDisplay() {
+    const screen = document.getElementById('screen-text');
+    if (!screen) return;
+    // 영수증이 펼쳐져 있거나 인쇄 중이면 디스플레이를 건드리지 않음
+    const wrap = document.getElementById('receipt-wrap');
+    if (printingActive) return;
+    if (wrap && (wrap.classList.contains('show') || wrap.classList.contains('torn-out') || wrap.classList.contains('printing'))) return;
+
+    if (myBooks.length === 0) {
+      screen.innerHTML = 'WELCOME<br/>BOOKCODE!<br/><span class="small">INSERT YOUR BOOK</span><span class="cursor"></span>';
+    } else {
+      const num = String(myBooks.length).padStart(3, '0');
+      screen.innerHTML = `BOOK ${num}<br/><span class="small">GOT MORE BOOKS?</span><span class="cursor"></span>`;
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._tid);
+    t._tid = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  // ───── 화면 전환 (메인 ↔ 검색만) ─────
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function goToHome() { showScreen('screen-home'); updateUI(); }
+  function goToSearch() {
+    if (!username) { openUsernameModal(); return; }
+    showScreen('screen-search');
+    const inp = document.getElementById('search-input');
+    inp.value = '';
+    renderSearch();
+    setTimeout(() => inp.focus(), 200);
+  }
+
+  // ───── 검색 ─────
+  function renderSearch() {
+    const q = document.getElementById('search-input').value.trim().toLowerCase();
+    const c = document.getElementById('search-results');
+    let results = BOOK_DB;
+    if (q) results = BOOK_DB.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q));
+    if (results.length === 0) {
+      c.innerHTML = '<div class="empty-state">검색 결과가 없어요</div>';
+      return;
+    }
+    c.innerHTML = results.map(b => {
+      const added = myBooks.some(mb => mb.id === b.id);
+      return `<div class="book-card" onclick="addBook(${b.id})" style="${added ? 'opacity:0.4;' : ''}">
+        <div class="book-spine" style="background:${b.color}"></div>
+        <div class="book-info">
+          <div class="book-title">${b.title}</div>
+          <div class="book-author">${b.author} · ${b.pages}p</div>
+        </div>
+        <span style="font-size:20px;color:${added ? '#1D9E75' : '#888780'};">${added ? '✓' : '+'}</span>
+      </div>`;
+    }).join('');
+  }
+  function addBook(id) {
+    if (myBooks.some(b => b.id === id)) { showToast('이미 추가된 책'); return; }
+    const b = BOOK_DB.find(x => x.id === id);
+    if (!b) return;
+    const t = new Date();
+    const mm = String(t.getMonth() + 1).padStart(2, '0');
+    const dd = String(t.getDate()).padStart(2, '0');
+    myBooks.push({ ...b, date: `${mm}.${dd}`, addedAt: Date.now() });
+    saveData();
+    showToast(`"${b.title.length > 12 ? b.title.slice(0,12) + '…' : b.title}" 추가됨`);
+    vibrate([30]);
+    renderSearch();
+  }
+
+  // ───── 영수증 HTML ─────
+  function buildReceiptHTML() {
+    if (myBooks.length === 0) {
+      return `<div class="receipt-empty">
+        아직 등록된 책이 없어요<br/>
+        <span style="font-size:13px;opacity:0.7;">+ ADD BOOK으로 추가해보세요</span>
+      </div>`;
+    }
+    const year = new Date().getFullYear();
+    const today = new Date();
+    const yyyymmdd = `${year}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
+    const totalPages = myBooks.reduce((s, b) => s + (b.pages || 0), 0);
+
+    let html = `<div class="receipt-row r-header">
+      <div class="r-brand-name">BOOKCODE</div>
+      <div class="r-sub">GOOD READER'S</div>
+      <div class="r-meta">@${username || 'guest'}</div>
+      <div class="r-meta">${year}</div>
+    </div>`;
+
+    html += `<div class="receipt-row r-dashed">
+      <div class="r-line"><span class="ttl">BOOK</span><span class="val">DATE</span></div>
+    </div>`;
+
+    html += `<div class="receipt-row">`;
+    myBooks.forEach((b, i) => {
+      const num = String(i + 1).padStart(3, '0');
+      html += `<div class="r-line" style="margin-top:4px;">
+        <span class="ttl"><span class="r-counter">${num}</span>${b.title}</span>
+        <span class="val">${b.date}</span>
+      </div>`;
+    });
+    html += `</div>`;
+
+    html += `<div class="receipt-row r-dashed r-total">
+      <div class="r-line"><span>TOTAL</span><span class="val">${totalPages.toLocaleString()} P</span></div>
+      <div class="r-line"><span>BOOKS</span><span class="val">${String(myBooks.length).padStart(3,'0')}</span></div>
+    </div>`;
+
+    const widths = [3, 5, 2, 4, 6, 3, 4, 2, 5, 3];
+    const heights = [100, 85, 95, 75, 100, 90, 80, 100, 70, 95];
+    const bars = myBooks.map((b, i) => {
+      const w = widths[i % widths.length];
+      const h = heights[i % heights.length];
+      return `<div class="r-barcode-bar" style="width:${w}px;height:${h}%;background:${b.color};"></div>`;
+    }).join('');
+
+    html += `<div class="receipt-row r-barcode-section">
+      <div class="r-barcode-label">— SPINE BARCODE —</div>
+      <div class="r-barcode-bars">${bars}</div>
+      <div class="r-barcode-code">${yyyymmdd}</div>
+    </div>`;
+
+    html += `<div class="receipt-row r-sig">made by @aiarchive.zip</div>`;
+
+    return html;
+  }
+
+  // ───── 인쇄 토글 (메인 화면에서 그대로 출력) ─────
+  function togglePrintReceipt() {
+    const wrap = document.getElementById('receipt-wrap');
+
+    // 이미 인쇄 중이면 무시
+    if (printingActive) return;
+
+    // 이미 펼쳐져 있으면 다시 접기 (이 함수는 CLOSE 버튼에서도 호출됨)
+    if (wrap.classList.contains('show') || wrap.classList.contains('torn-out')) {
+      closeReceipt();
+      return;
+    }
+
+    // 인쇄 시작
+    printReceipt();
+  }
+
+  function closeReceipt() {
+    const wrap = document.getElementById('receipt-wrap');
+    wrap.classList.remove('show', 'torn-out', 'printing');
+    document.getElementById('receipt').innerHTML = '';
+    switchToDefaultMode();
+    updateDisplay();
+    toggleFooter(true);
+  }
+
+  function toggleFooter(visible) {
+    const f = document.querySelector('.footer-credit');
+    if (!f) return;
+    f.style.opacity = visible ? '' : '0';
+    f.style.pointerEvents = visible ? '' : 'none';
+  }
+
+  function switchToSharedMode() {
+    // 영수증 출력 후: CLOSE / SHARE
+    const btn1 = document.getElementById('btn-primary');
+    const btn2 = document.getElementById('btn-secondary');
+    btn1.textContent = '✕ CLOSE';
+    btn1.className = 'pill ghost';
+    btn1.onclick = closeReceipt;
+    btn2.textContent = '↗ SHARE';
+    btn2.className = 'pill';
+    btn2.onclick = shareReceipt;
+  }
+
+  function switchToEmptyMode() {
+    // 빈 영수증일 때: ADD BOOK / CLOSE
+    const btn1 = document.getElementById('btn-primary');
+    const btn2 = document.getElementById('btn-secondary');
+    btn1.textContent = '+ ADD BOOK';
+    btn1.className = 'pill';
+    btn1.onclick = goToSearch;
+    btn2.textContent = '✕ CLOSE';
+    btn2.className = 'pill ghost';
+    btn2.onclick = closeReceipt;
+  }
+
+  function switchToDefaultMode() {
+    // 기본 모드: ADD BOOK / RECEIPT
+    const btn1 = document.getElementById('btn-primary');
+    const btn2 = document.getElementById('btn-secondary');
+    btn1.textContent = '+ ADD BOOK';
+    btn1.className = 'pill';
+    btn1.onclick = goToSearch;
+    btn2.textContent = '▷ RECEIPT';
+    btn2.className = 'pill ghost';
+    btn2.onclick = togglePrintReceipt;
+  }
+
+  function shareReceipt() {
+    if (myBooks.length === 0) {
+      showToast('영수증이 없어요');
+      return;
+    }
+    // 공유 화면으로 이동, 영수증 복제해서 표시
+    const clone = document.getElementById('receipt-clone');
+    clone.innerHTML = buildReceiptHTML();
+    // 모든 줄을 즉시 보이게 (애니메이션 X)
+    clone.querySelectorAll('.receipt-row').forEach(r => r.classList.add('visible'));
+    showScreen('screen-share');
+  }
+
+  function closeShare() {
+    // 메인으로 돌아가면 영수증은 출력 완료 상태 유지
+    showScreen('screen-home');
+  }
+
+  function saveImage() {
+    const btn = document.getElementById('save-btn');
+    const captureBox = document.getElementById('capture-box');
+    const receiptClone = document.getElementById('receipt-clone');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '... PROCESSING';
+
+    // 캡처 모드 ON: 종이/글자 진하게
+    receiptClone.classList.add('capturing');
+
+    // 폰트가 완전히 로드되길 기다린 후 캡처
+    const doCapture = () => {
+      html2canvas(captureBox, {
+        backgroundColor: null,
+        scale: 3,
+        logging: false,
+        useCORS: true,
+        allowTaint: false,
+      }).then(canvas => {
+        const link = document.createElement('a');
+        const today = new Date();
+        const stamp = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
+        link.download = `bookcode_${username || 'reader'}_${stamp}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast('이미지 저장 완료');
+        receiptClone.classList.remove('capturing');
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }).catch(err => {
+        console.error(err);
+        showToast('저장 실패. 다시 시도해주세요');
+        receiptClone.classList.remove('capturing');
+        btn.disabled = false;
+        btn.textContent = originalText;
+      });
+    };
+
+    // document.fonts.ready 지원 시 폰트 로드 완료 후 캡처
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        setTimeout(doCapture, 150);
+      });
+    } else {
+      setTimeout(doCapture, 300);
+    }
+  }
+
+  function printReceipt() {
+    const c = document.getElementById('receipt');
+    const wrap = document.getElementById('receipt-wrap');
+    const machine = document.getElementById('machine');
+    const led = document.getElementById('led-green');
+    const screen = document.getElementById('screen-text');
+    const btn2 = document.getElementById('btn-secondary');
+
+    c.innerHTML = buildReceiptHTML();
+    const rows = c.querySelectorAll('.receipt-row');
+
+    if (myBooks.length === 0) {
+      // 빈 상태는 그냥 펼치기
+      wrap.classList.add('show');
+      switchToEmptyMode();
+      toggleFooter(false);
+      return;
+    }
+
+    printingActive = true;
+    btn2.disabled = true;
+    toggleFooter(false);
+
+    machine.classList.add('printing');
+    led.classList.add('blink');
+    screen.innerHTML = 'PRINTING...<br/><span class="small">PLEASE WAIT</span><span class="cursor"></span>';
+
+    wrap.classList.remove('show', 'torn-out');
+    rows.forEach(r => r.classList.remove('visible'));
+    void wrap.offsetWidth;
+    wrap.classList.add('printing');
+
+    // 지이이잉 사운드 시작
+    startPrintGrinding();
+    vibrate([30]);
+
+    // 모바일 자동 스크롤
+    const isMobile = window.innerWidth < 768;
+    let scrollInt = null;
+    if (isMobile) {
+      scrollInt = setInterval(() => {
+        const rect = wrap.getBoundingClientRect();
+        if (rect.bottom > window.innerHeight - 80) {
+          window.scrollBy({ top: 6, behavior: 'auto' });
+        }
+      }, 60);
+    }
+
+    // 줄 등장
+    rows.forEach((row, i) => {
+      setTimeout(() => {
+        row.classList.add('visible');
+        vibrate([6]);
+      }, 300 + i * 220);
+    });
+
+    // 완료
+    const totalTime = 300 + rows.length * 220 + 400;
+    setTimeout(() => {
+      stopPrintGrinding();
+      if (scrollInt) clearInterval(scrollInt);
+
+      machine.classList.remove('printing');
+      led.classList.remove('blink');
+      wrap.classList.add('torn-out');
+      playTear();
+      vibrate([60, 40, 80]);
+
+      screen.innerHTML = `THANKS,<br/>BOOKCODE!<br/><span class="small">TAKE YOUR RECEIPT</span><span class="cursor"></span>`;
+      btn2.disabled = false;
+      printingActive = false;
+
+      // 영수증 출력 후 버튼 변경: ADD BOOK / RECEIPT → CLOSE / SHARE
+      switchToSharedMode();
+    }, totalTime);
+  }
+
+  // ───── 사운드: 지이이잉~ (프린터 모터) ─────
+  function getAudio() {
+    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function startPrintGrinding() {
+    const ctx = getAudio(); if (!ctx) return;
+    stopPrintGrinding();
+    
+    const now = ctx.currentTime;
+    const duration = 0.7; // 초반 0.7초만 지이잉
+    
+    // 1) 모터 시작음 — 사인파가 천천히 올라갔다가 안정 (모터 RPM up)
+    const motor = ctx.createOscillator();
+    motor.type = 'sawtooth';
+    motor.frequency.setValueAtTime(60, now);
+    motor.frequency.exponentialRampToValueAtTime(90, now + 0.3);
+    
+    const motorGain = ctx.createGain();
+    motorGain.gain.setValueAtTime(0, now);
+    motorGain.gain.linearRampToValueAtTime(0.06, now + 0.08);
+    motorGain.gain.setValueAtTime(0.06, now + 0.4);
+    motorGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    
+    // 2) 미세 떨림 LFO (12Hz로 묵직하게)
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 12;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 3;
+    lfo.connect(lfoGain);
+    lfoGain.connect(motor.frequency);
+    
+    // 3) 노이즈 (덜덜거림) — 짧게만
+    const bufferSize = ctx.sampleRate * duration;
+    const buf = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+    
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.value = 400;
+    
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0, now);
+    noiseGain.gain.linearRampToValueAtTime(0.04, now + 0.08);
+    noiseGain.gain.setValueAtTime(0.04, now + 0.4);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    
+    motor.connect(motorGain);
+    motorGain.connect(ctx.destination);
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    
+    motor.start(now);
+    motor.stop(now + duration);
+    lfo.start(now);
+    lfo.stop(now + duration);
+    noise.start(now);
+    noise.stop(now + duration);
+    
+    printGrinNode = { motor, lfo, noise, ctx };
+  }
+
+  function stopPrintGrinding() {
+    // 사운드가 자체적으로 페이드 아웃하니까 강제 종료 불필요
+    printGrinNode = null;
+  }
+
+  function playTear() {
+    const ctx = getAudio(); if (!ctx) return;
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.18, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) { const t = i/d.length; d[i] = (Math.random()*2-1)*(1-t)*0.5; }
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1500;
+    const g = ctx.createGain(); g.gain.value = 0.7;
+    src.connect(f); f.connect(g); g.connect(ctx.destination); src.start();
+  }
+  function vibrate(p) { if (navigator.vibrate) navigator.vibrate(p); }
+
+  // ───── 모달 ─────
+  function openUsernameModal() {
+    document.getElementById('username-modal').classList.add('show');
+    setTimeout(() => document.getElementById('username-input').focus(), 100);
+  }
+  function saveUsername() {
+    const v = document.getElementById('username-input').value.trim().replace(/^@/, '');
+    if (!v) { showToast('이름을 입력해주세요'); return; }
+    username = v;
+    saveData();
+    document.getElementById('username-modal').classList.remove('show');
+    showToast(`반가워요 @${username}`);
+    goToSearch();
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const inp = document.getElementById('username-input');
+    if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') saveUsername(); });
+  });
+
+  function confirmReset() {
+    if (myBooks.length === 0 && !username) { showToast('지울 데이터가 없어요'); return; }
+    document.getElementById('reset-modal').classList.add('show');
+  }
+  function closeResetModal() { document.getElementById('reset-modal').classList.remove('show'); }
+  function doReset() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(USER_KEY);
+    } catch (e) {}
+    myBooks = []; username = '';
+    // 영수증 영역도 초기화
+    const wrap = document.getElementById('receipt-wrap');
+    wrap.classList.remove('show', 'torn-out', 'printing');
+    document.getElementById('receipt').innerHTML = '';
+    switchToDefaultMode();
+    closeResetModal();
+    showToast('초기화 완료');
+    goToHome();
+  }
+
+  loadData();
+</script>
+</body>
+</html>
